@@ -437,4 +437,10 @@ function calculate(){
     result=roundR(result);
     const rs=fmt(result);
     addH(raw,rs);
-    expr=raw+' ='
+    expr = raw + ' =';
+    disp = rs;
+    isResult = true;
+    lastResult = result;
+    update(result);
+    renderH();
+  }
