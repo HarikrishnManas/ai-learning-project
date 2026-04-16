@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>CALC</title>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#0a0a0a;--surface:#111;--s2:#1a1a1a;--s3:#222;
+    --border:#2a2a2a;--text:#f0f0f0;--muted:#666;
+    --orange:#ff6b35;--blue:#4a9eff;--green:#3ddc84;
+    --red:#ff4545;--purple:#c8aaff;--gold:#ffcc44;
+  }
+  html,body{height:100%;background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',sans-serif;overflow:hidden;touch-action:manipulation}
+  .app{display:flex;flex-direction:column;height:100dvh;max-width:430px;margin:0 auto}
+
+  /* DISPLAY */
+  .display{background:#080808;padding:14px 20px 10px;flex-shrink:0}
+  .top-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+  .brand{font-size:10px;font-weight:700;letter-spacing:.3em;color:var(--muted)}
+  .controls{display:flex;gap:6px;align-items:center}
+  .pill{font-size:10px;font-weight:700;letter-spacing:.12em;padding:4px 9px;border-radius:20px;cursor:pointer;-webkit-tap-highlight-color:transparent;border:1px solid}
+  .pill-deg{border-color:rgba(255,107,53,.4);background:rgba(255,107,53,.1);color:var(--orange)}
+  .pill-sci{border-color:rgba(74,158,255,.4);background:rgba(74,158,255,.1);color:var(--blue)}
+  .pill-info{border-color:rgba(61,220,132,.4);background:rgba(61,220,132,.1);color:var(--green)}
+
+  .expr{font-family:'SF Mono','Courier New',monospace;font-size:12px;color:var(--muted);text-align:right;min-height:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:2px}
+  .main-num{font-family:'SF Mono','Courier New',monospace;font-size:50px;font-weight:300;color:var(--text);text-align:right;line-height:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:font-size .1s;padding:4px 0}
+  .main-num.sm{font-size:34px}.main-num.xs{font-size:22px}
+
+  .badges{display:flex;gap:5px;justify-content:flex-end;margin-top:5px;flex-wrap:wrap;min-height:22px}
+  .badge{font-size:10px;font-weight:700;letter-spacing:.12em;padding:3px 9px;border-radius:20px;border:1px solid;animation:bpop .25s ease}
+  @keyframes bpop{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
+  .bp{background:rgba(200,170,255,.15);color:var(--purple);border-color:rgba(200,170,255,.3)}
+  .be{background:rgba(74,158,255,.12);color:var(--blue);border-color:rgba(74,158,255,.25)}
+  .bo{background:rgba(255,107,53,.1);color:var(--orange);border-color:rgba(255,107,53,.2)}
+  .bi{background:rgba(255,204,68,.12);color:var(--gold);border-color:rgba(255,204,68,.3)}
+  .bn{background:rgba(255,69,69,.1);color:var(--red);border-color:rgba(255,69,69,.2)}
+  .bz{background:rgba(100,100,100,.15);color:#888;border-color:#333}
+  .bps{background:rgba(61,220,132,.12);color:var(--green);border-color:rgba(61,220,132,.25)}
+
+  .meta-row{display:flex;justify-content:space-between;margin-top:4px;min-height:14px}
+  .mem-tag{font-size:10px;font-weight:700;color:var(--green);opacity:0;transition:opacity .3s;letter-spacing:.1em}
+  .mem-tag.on{opacity:1}
+  .err-tag{font-size:10px;font-weight:700;color:var(--red);opacity:0;transition:opacity .3s}
+  .err-tag.on{opacity:1}
+
+  .divider{height:1px;background:var(--border);flex-shrink:0}
+
+  /* SCI PANEL */
+  .sci-panel{background:#0d0d0d;overflow:hidden;max-height:0;transition:max-height .35s cubic-bezier(.4,0,.2,1);flex-shrink:0}
+  .sci-panel.open{max-height:280px}
+  .sci-scroll{overflow-x:auto;overflow-y:hidden;padding:10px 8px 6px;-webkit-overflow-scrolling:touch;scrollbar-width:none;white-space:nowrap}
+  .sci-scroll::-webkit-scrollbar{display:none}
+  .sci-section{display:inline-flex;flex-direction:column;gap:6px;margin-right:14px;vertical-align:top}
+  .ssl{font-size:8px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:#333;padding-left:2px}
+  .sci-row{display:flex;gap:6px}
+  .sb{min-width:56px;height:36px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-family:'SF Mono','Courier New',monospace;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;transition:.08s;user-select:none;padding:0 8px}
+  .sb:active{transform:scale(.88);background:var(--s3)}
+  .sb.trig{color:var(--blue);border-color:rgba(74,158,255,.2);background:rgba(74,158,255,.06)}
+  .sb.pow{color:var(--orange);border-color:rgba(255,107,53,.2);background:rgba(255,107,53,.06)}
+  .sb.logf{color:var(--green);border-color:rgba(61,220,132,.2);background:rgba(61,220,132,.06)}
+  .sb.const{color:var(--purple);border-color:rgba(200,170,255,.2);background:rgba(200,170,255,.06)}
+  .sb.extra{color:var(--gold);border-color:rgba(255,204,68,.2);background:rgba(255,204,68,.06)}
+
+  /* BUTTON GRID */
+  .btn-area{flex:1;padding:8px 8px 6px;display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(7,1fr);gap:6px;min-height:0}
+  .b{border-radius:13px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:400;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent;transition:transform .08s,filter .1s;position:relative;overflow:hidden}
+  .b:active{transform:scale(.89);filter:brightness(1.35)}
+  .b-num{background:var(--s2);color:var(--text)}
+  .b-op{background:var(--s3);color:#bbb;font-size:22px}
+  .b-eq{background:var(--orange);color:#fff;border-color:var(--orange);font-size:24px;box-shadow:0 4px 18px rgba(255,107,53,.35)}
+  .b-clr{background:rgba(255,69,69,.12);color:var(--red);border-color:rgba(255,69,69,.25);font-size:16px}
+  .b-spc{background:rgba(74,158,255,.08);color:var(--blue);border-color:rgba(74,158,255,.2);font-size:16px}
+  .b-mem{background:rgba(61,220,132,.07);color:var(--green);border-color:rgba(61,220,132,.18);font-size:12px;font-weight:700;letter-spacing:.05em}
+  .span2{grid-column:span 2}
+
+  /* SHEET */
+  .ov{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:100;display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity .3s}
+  .ov.open{opacity:1;pointer-events:all}
+  .sheet{background:#111;border-radius:24px 24px 0 0;border:1px solid var(--border);width:100%;max-height:82vh;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .35s cubic-bezier(.4,0,.2,1)}
+  .ov.open .sheet{transform:translateY(0)}
+  .sh-handle{width:40px;height:4px;background:#333;border-radius:2px;margin:10px auto 0;flex-shrink:0}
+  .sh-top{display:flex;justify-content:space-between;padding:12px 20px 10px;border-bottom:1px solid var(--border);flex-shrink:0}
+  .sh-title{font-size:15px;font-weight:600;color:var(--text)}
+  .sh-close{font-size:13px;color:var(--muted);cursor:pointer}
+  .tabs{display:flex;gap:8px;padding:10px 16px;flex-shrink:0}
+  .tab{flex:1;padding:7px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-size:12px;font-weight:600;letter-spacing:.08em;text-align:center;cursor:pointer;-webkit-tap-highlight-color:transparent}
+  .tab.active{background:var(--s3);color:var(--text);border-color:#444}
+  .tc{display:none}.tc.active{display:block}
+  .sh-body{overflow-y:auto;padding:10px 14px 28px;flex:1}
+
+  /* Info cards */
+  .icard{background:var(--s2);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:10px}
+  .icard-title{font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;margin-bottom:8px}
+  .icard-body{font-size:13px;color:#ccc;line-height:1.65}
+  .icard-body b{color:var(--text)}
+  .highlight{font-family:'SF Mono','Courier New',monospace;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:8px;padding:8px 12px;font-size:12px;color:var(--gold);margin-top:8px;line-height:1.7;display:block}
+  .fr{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #1a1a1a}
+  .fr:last-child{border-bottom:none}
+  .fl{font-size:12px;color:var(--muted)}
+  .fv{font-family:'SF Mono','Courier New',monospace;font-size:12px;color:var(--text)}
+
+  /* History */
+  .hi{padding:10px 14px;border-radius:12px;margin-bottom:6px;border:1px solid var(--border);cursor:pointer;-webkit-tap-highlight-color:transparent}
+  .hi:active{background:var(--s2)}
+  .hi-e{font-family:'SF Mono','Courier New',monospace;font-size:11px;color:var(--muted);margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .hi-r{font-family:'SF Mono','Courier New',monospace;font-size:18px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .hempty{text-align:center;padding:40px 0;color:#333;font-size:13px}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="display">
+    <div class="top-bar">
+      <span class="brand">CALC</span>
+      <div class="controls">
+        <button class="pill pill-deg" id="angleBtn" onclick="toggleAngle()">DEG</button>
+        <button class="pill pill-sci" onclick="toggleSci()">SCI ▾</button>
+        <button class="pill pill-info" onclick="openInfo()">INFO</button>
+      </div>
+    </div>
+    <div class="expr" id="expr"></div>
+    <div class="main-num" id="mainNum">0</div>
+    <div class="badges" id="badges"></div>
+    <div class="meta-row">
+      <span class="mem-tag" id="memTag">MEM</span>
+      <span class="err-tag" id="errTag"></span>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="sci-panel" id="sciPanel">
+    <div class="sci-scroll">
+
+      <div class="sci-section">
+        <div class="ssl">Trig</div>
+        <div class="sci-row">
+          <button class="sb trig" onclick="sciF('sin')">sin</button>
+          <button class="sb trig" onclick="sciF('cos')">cos</button>
+          <button class="sb trig" onclick="sciF('tan')">tan</button>
+        </div>
+        <div class="sci-row">
+          <button class="sb trig" onclick="sciF('asin')">sin⁻¹</button>
+          <button class="sb trig" onclick="sciF('acos')">cos⁻¹</button>
+          <button class="sb trig" onclick="sciF('atan')">tan⁻¹</button>
+        </div>
+      </div>
+
+      <div class="sci-section">
+        <div class="ssl">Power</div>
+        <div class="sci-row">
+          <button class="sb pow" onclick="sciF('sq')">x²</button>
+          <button class="sb pow" onclick="sciF('cube')">x³</button>
+          <button class="sb pow" onclick="ap('^')">xʸ</button>
+        </div>
+        <div class="sci-row">
+          <button class="sb pow" onclick="sciF('sqrt')">√x</button>
+          <button class="sb pow" onclick="sciF('cbrt')">∛x</button>
+          <button class="sb pow" onclick="sciF('recip')">1/x</button>
+        </div>
+      </div>
+
+      <div class="sci-section">
+        <div class="ssl">Log</div>
+        <div class="sci-row">
+          <button class="sb logf" onclick="sciF('log')">log</button>
+          <button class="sb logf" onclick="sciF('ln')">ln</button>
+          <button class="sb logf" onclick="sciF('log2')">log₂</button>
+        </div>
+        <div class="sci-row">
+          <button class="sb logf" onclick="sciF('exp')">eˣ</button>
+          <button class="sb logf" onclick="sciF('10x')">10ˣ</button>
+          <button class="sb logf" onclick="sciF('abs')">|x|</button>
+        </div>
+      </div>
+
+      <div class="sci-section">
+        <div class="ssl">Constants</div>
+        <div class="sci-row">
+          <button class="sb const" onclick="ins('pi')">π</button>
+          <button class="sb const" onclick="ins('e')">e</button>
+          <button class="sb const" onclick="ins('phi')">φ</button>
+        </div>
+        <div class="sci-row">
+          <button class="sb const" onclick="ins('c')">c</button>
+          <button class="sb const" onclick="ins('g')">g</button>
+          <button class="sb const" onclick="ins('h')">ℎ</button>
+        </div>
+      </div>
+
+      <div class="sci-section">
+        <div class="ssl">Extras</div>
+        <div class="sci-row">
+          <button class="sb extra" onclick="sciF('fact')">n!</button>
+          <button class="sb extra" onclick="sciF('floor')">floor</button>
+          <button class="sb extra" onclick="sciF('ceil')">ceil</button>
+        </div>
+        <div class="sci-row">
+          <button class="sb extra" onclick="sciF('round')">round</button>
+          <button class="sb extra" onclick="sciF('perc')">x%</button>
+          <button class="sb extra" onclick="sciF('2x')">2ˣ</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="btn-area">
+    <button class="b b-mem" onclick="memClear()">MC</button>
+    <button class="b b-mem" onclick="memRecall()">MR</button>
+    <button class="b b-mem" onclick="memAdd()">M+</button>
+    <button class="b b-mem" onclick="memSub()">M−</button>
+
+    <button class="b b-clr" onclick="allClear()">AC</button>
+    <button class="b b-spc" onclick="toggleSign()">±</button>
+    <button class="b b-spc" onclick="ap('(')">(</button>
+    <button class="b b-op"  onclick="ap('÷')">÷</button>
+
+    <button class="b b-num" onclick="ap('7')">7</button>
+    <button class="b b-num" onclick="ap('8')">8</button>
+    <button class="b b-num" onclick="ap('9')">9</button>
+    <button class="b b-op"  onclick="ap('×')">×</button>
+
+    <button class="b b-num" onclick="ap('4')">4</button>
+    <button class="b b-num" onclick="ap('5')">5</button>
+    <button class="b b-num" onclick="ap('6')">6</button>
+    <button class="b b-op"  onclick="ap('−')">−</button>
+
+    <button class="b b-num" onclick="ap('1')">1</button>
+    <button class="b b-num" onclick="ap('2')">2</button>
+    <button class="b b-num" onclick="ap('3')">3</button>
+    <button class="b b-op"  onclick="ap('+')">+</button>
+
+    <button class="b b-num span2" style="justify-content:flex-start;padding-left:26px" onclick="ap('0')">0</button>
+    <button class="b b-num" style="font-size:26px" onclick="appendDot()">·</button>
+    <button class="b b-spc" style="font-size:18px" onclick="backspace()">⌫</button>
+
+    <button class="b b-spc" onclick="ap(')')">)</button>
+    <button class="b b-spc" style="font-size:12px;letter-spacing:.03em" onclick="openInfo()">INFO</button>
+    <button class="b b-eq span2" onclick="calculate()">=</button>
+  </div>
+</div>
+
+<!-- INFO SHEET -->
+<div class="ov" id="ov" onclick="closeBg(event)">
+  <div class="sheet">
+    <div class="sh-handle"></div>
+    <div class="sh-top">
+      <span class="sh-title">Calculator Info</span>
+      <span class="sh-close" onclick="closeSheet()">✕ Close</span>
+    </div>
+    <div class="tabs">
+      <div class="tab active" id="t1" onclick="switchTab(1)">MATH INFO</div>
+      <div class="tab" id="t2" onclick="switchTab(2)">HISTORY</div>
+    </div>
+    <div class="sh-body">
+      <div class="tc active" id="c1"></div>
+      <div class="tc" id="c2"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── STATE ──────────────────────────────────────
+let disp='0',expr='',memory=0,hasMemory=false;
+let isResult=false,angleMode='DEG',sciOpen=false;
+let history=[],lastResult=null;
+
+const mainNum=document.getElementById('mainNum');
+const exprEl=document.getElementById('expr');
+const memTag=document.getElementById('memTag');
+const errTag=document.getElementById('errTag');
+const angleBtn=document.getElementById('angleBtn');
+const sciPanel=document.getElementById('sciPanel');
+const badgesEl=document.getElementById('badges');
+
+// ── CONSTANTS ──────────────────────────────────
+const CONSTS={
+  pi:{v:Math.PI,           label:'π = 3.14159...'},
+  e: {v:Math.E,            label:'e = 2.71828...'},
+  phi:{v:1.6180339887498948,label:'φ = 1.61803...'},
+  c: {v:299792458,         label:'c = 299,792,458 m/s (Speed of Light)'},
+  g: {v:9.80665,           label:'g = 9.80665 m/s² (Gravity)'},
+  h: {v:6.62607015e-34,    label:'h = 6.626×10⁻³⁴ J·s (Planck)'},
+};
+
+// ── DISPLAY ────────────────────────────────────
+function update(n){
+  mainNum.textContent=disp;
+  exprEl.textContent=expr;
+  mainNum.classList.remove('sm','xs');
+  if(disp.length>14)mainNum.classList.add('xs');
+  else if(disp.length>9)mainNum.classList.add('sm');
+  renderBadges(n!==undefined?n:null);
+}
+
+function showErr(msg){
+  errTag.textContent=msg;
+  errTag.classList.add('on');
+  setTimeout(()=>errTag.classList.remove('on'),2800);
+}
+
+// ── BADGES ─────────────────────────────────────
+function isPrime(n){
+  if(!Number.isInteger(n)||n<2)return false;
+  if(n===2)return true;
+  if(n%2===0)return false;
+  for(let i=3;i<=Math.sqrt(n);i+=2)if(n%i===0)return false;
+  return true;
+}
+function isPerfSq(n){
+  if(n<0||!isFinite(n))return false;
+  const s=Math.sqrt(n);
+  return Number.isInteger(s)&&s*s===n;
+}
+
+function renderBadges(n){
+  badgesEl.innerHTML='';
+  if(n===null||n===undefined)return;
+  const add=(cls,txt)=>{
+    const el=document.createElement('span');
+    el.className='badge '+cls;
+    el.textContent=txt;
+    badgesEl.appendChild(el);
+  };
+  if(!isFinite(n)){
+    add('bi', n>0?'∞ INFINITY':'-∞ NEG INFINITY');
+    return;
+  }
+  if(n===0){add('bz','ZERO');return;}
+  if(n<0)add('bn','NEGATIVE');
+  if(Number.isInteger(n)){
+    const a=Math.abs(n);
+    if(isPrime(a))add('bp','PRIME');
+    if(n%2===0)add('be','EVEN'); else add('bo','ODD');
+    if(isPerfSq(a))add('bps','PERFECT SQ');
+  }
+}
+
+// ── INPUT ──────────────────────────────────────
+function ap(ch){
+  errTag.classList.remove('on');
+  const ops=new Set(['+','−','×','÷','^','%']);
+  if(isResult){
+    if(ops.has(ch)){disp=disp+ch;isResult=false;}
+    else{disp=ch;expr='';isResult=false;badgesEl.innerHTML='';}
+  } else if(disp==='0'&&!ops.has(ch)&&ch!=='.'&&ch!=='('){
+    disp=ch;
+  } else {
+    disp+=ch;
+  }
+  update();
+}
+
+function appendDot(){
+  const parts=disp.split(/[\+\-\×\÷\^\(\)%]/);
+  if(parts[parts.length-1].includes('.'))return;
+  if(isResult){disp='0.';isResult=false;}
+  else if(disp==='0')disp='0.';
+  else disp+='.';
+  update();
+}
+
+function allClear(){
+  disp='0';expr='';isResult=false;lastResult=null;
+  errTag.classList.remove('on');badgesEl.innerHTML='';update();
+}
+
+function backspace(){
+  if(isResult){allClear();return;}
+  disp=disp.slice(0,-1)||'0';update();
+}
+
+function toggleSign(){
+  if(disp==='0')return;
+  disp=disp.startsWith('-')?disp.slice(1):'-'+disp;update();
+}
+
+function toggleAngle(){
+  angleMode=angleMode==='DEG'?'RAD':'DEG';
+  angleBtn.textContent=angleMode;
+  if(angleMode==='RAD'){
+    angleBtn.style.cssText='color:#4a9eff;border-color:rgba(74,158,255,.4);background:rgba(74,158,255,.1)';
+  } else {
+    angleBtn.style.cssText='color:#ff6b35;border-color:rgba(255,107,53,.4);background:rgba(255,107,53,.1)';
+  }
+}
+
+function toggleSci(){
+  sciOpen=!sciOpen;
+  sciPanel.classList.toggle('open',sciOpen);
+}
+
+function toRad(n){return angleMode==='DEG'?n*Math.PI/180:n;}
+function fromRad(n){return angleMode==='DEG'?n*180/Math.PI:n;}
+
+// ── SAFE EVAL (Infinity-aware) ─────────────────
+function safeEval(raw){
+  let s=raw
+    .replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-')
+    .replace(/\^/g,'**')
+    .replace(/π/g,String(Math.PI))
+    .replace(/φ/g,'1.6180339887498948482')
+    .replace(/(?<![0-9eE])e(?![0-9+\-])/g,String(Math.E));
+  const o=(s.match(/\(/g)||[]).length,cl=(s.match(/\)/g)||[]).length;
+  s+=')'.repeat(Math.max(0,o-cl));
+  return Function('"use strict";return('+s+')')();
+}
+
+// ── CALCULATE ──────────────────────────────────
+function calculate(){
+  errTag.classList.remove('on');
+  if(!disp||disp==='0')return;
+  const raw=disp;
+  try{
+    let result=safeEval(raw);
+
+    // Division by zero → Infinity (not error)
+    if(result===Infinity||result===-Infinity){
+      const s=result===Infinity?'∞':'-∞';
+      addH(raw,s);
+      expr=raw+' =';disp=s;isResult=true;lastResult=result;
+      update(result);renderH();
+      return;
+    }
+
+    if(isNaN(result))throw new Error();
+    result=roundR(result);
+    const rs=fmt(result);
+    addH(raw,rs);
+    expr=raw+' =';disp=rs;isResult=true;lastResult=result;
+    update(result);renderH();
+  } catch(e){showErr('SYNTAX ERROR');}
+}
+
+// ── SCI FUNCTIONS ──────────────────────────────
+function sciF(fn){
+  try{
+    const raw=disp;
+    const x=parseV(disp);
+    if(isNaN(x)){showErr('INVALID INPUT');return;}
+    let r;
+    switch(fn){
+      case 'sin':  r=Math.sin(toRad(x));break;
+      case 'cos':  r=Math.cos(toRad(x));break;
+      case 'tan':  r=Math.tan(toRad(x));break;
+      case 'asin': r=fromRad(Math.asin(x));break;
+      case 'acos': r=fromRad(Math.acos(x));break;
+      case 'atan': r=fromRad(Math.atan(x));break;
+      case 'sqrt': r=Math.sqrt(x);break;
+      case 'cbrt': r=Math.cbrt(x);break;
+      case 'sq':   r=x*x;break;
+      case 'cube': r=x*x*x;break;
+      case 'recip':r=x===0?Infinity:1/x;break;
+      case 'log':  r=Math.log10(x);break;
+      case 'ln':   r=Math.log(x);break;
+      case 'log2': r=Math.log2(x);break;
+      case 'exp':  r=Math.exp(x);break;
+      case '10x':  r=Math.pow(10,x);break;
+      case 'abs':  r=Math.abs(x);break;
+      case 'fact': r=fact(x);break;
+      case 'floor':r=Math.floor(x);break;
+      case 'ceil': r=Math.ceil(x);break;
+      case 'round':r=Math.round(x);break;
+      case 'perc': r=x/100;break;
+      case '2x':   r=Math.pow(2,x);break;
+    }
+    if(r===Infinity||r===-Infinity){
+      const s=r===Infinity?'∞':'-∞';
+      const e2=fn+'('+raw+')';
+      addH(e2,s);expr=e2+' =';disp=s;isResult=true;lastResult=r;
+      update(r);renderH();return;
+    }
+    if(isNaN(r))throw 'DOMAIN ERROR';
+    r=roundR(r);
+    const e2=fn+'('+raw+')';
+    addH(e2,fmt(r));expr=e2+' =';disp=fmt(r);isResult=true;lastResult=r;
+    update(r);renderH();
+  }catch(e){showErr(String(e));}
+}
+
+function fact(n){
+  if(!Number.isInteger(n)||n<0||n>170)throw 'DOMAIN ERROR';
+  let r=1;for(let i=2;i<=n;i++)r*=i;return r;
+}
+
+function ins(k){
+  const c=CONSTS[k];if(!c)return;
+  const v=fmt(roundR(c.v));
+  if(isResult||disp==='0'){disp=v;isResult=false;badgesEl.innerHTML='';}
+  else disp+=v;
+  update();
+}
+
+// ── MEMORY ─────────────────────────────────────
+function memAdd(){const v=parseV(disp);if(isNaN(v))return;memory+=v;hasMemory=true;memTag.classList.add('on');}
+function memSub(){const v=parseV(disp);if(isNaN(v))return;memory-=v;if(memory===0){hasMemory=false;memTag.classList.remove('on');}}
+function memRecall(){if(!hasMemory)return;disp=fmt(roundR(memory));isResult=false;update();}
+function memClear(){memory=0;hasMemory=false;memTag.classList.remove('on');}
+
+// ── HELPERS ────────────────────────────────────
+function parseV(s){
+  try{
+    let p=s.replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-').replace(/\^/g,'**')
+           .replace(/π/g,String(Math.PI)).replace(/φ/g,'1.618')
+           .replace(/(?<![0-9])e(?![0-9+\-])/g,String(Math.E));
+    return Function('"use strict";return('+p+')')();
+  }catch{return NaN;}
+}
+
+function roundR(n){
+  if(Math.abs(n)<1e-10&&n!==0)return parseFloat(n.toExponential(6));
+  if(Math.abs(n)>1e12)return parseFloat(n.toExponential(6));
+  return parseFloat(n.toPrecision(12));
+}
+
+function fmt(n){
+  if(!isFinite(n))return n>0?'∞':'-∞';
+  const s=String(n);
+  return s.length>16?parseFloat(n).toExponential(6):s;
+}
+
+function getFactors(n){
+  const f=[];
+  for(let i=1;i<=Math.sqrt(n);i++)if(n%i===0){f.push(i);if(i!==n/i)f.push(n/i);}
+  return f.sort((a,b)=>a-b);
+}
+
+// ── HISTORY ────────────────────────────────────
+function addH(e,r){history.unshift({e,r});if(history.length>60)history.pop();}
+function renderH(){
+  const el=document.getElementById('c2');
+  if(!history.length){el.innerHTML='<div class="hempty">No calculations yet</div>';return;}
+  el.innerHTML=history.map((h,i)=>`
+    <div class="hi" onclick="loadH(${i})">
+      <div class="hi-e">${h.e}</div>
+      <div class="hi-r">${h.r}</div>
+    </div>`).join('');
+}
+function loadH(i){
+  const v=history[i].r;
+  disp=String(v);
+  lastResult=(v==='∞')?Infinity:(v==='-∞')?-Infinity:parseFloat(v);
+  isResult=true;update(lastResult);closeSheet();
+}
+
+// ── INFO SHEET ─────────────────────────────────
+function openInfo(){renderInfo();renderH();document.getElementById('ov').classList.add('open');}
+function closeSheet(){document.getElementById('ov').classList.remove('open');}
+function closeBg(e){if(e.target===document.getElementById('ov'))closeSheet();}
+
+function switchTab(n){
+  [1,2].forEach(i=>{
+    document.getElementById('t'+i).classList.toggle('active',i===n);
+    document.getElementById('c'+i).classList.toggle('active',i===n);
+  });
+}
+
+function row(label,val){return`<div class="fr"><span class="fl">${label}</span><span class="fv">${val}</span></div>`;}
+function card(title,color,body){return`<div class="icard"><div class="icard-title" style="color:${color}">${title}</div><div class="icard-body">${body}</div></div>`;}
+
+function renderInfo(){
+  const el=document.getElementById('c1');
+  const n=lastResult;
+  let html='';
+
+  // ── Infinity explanation ──
+  if(n===Infinity||n===-Infinity||disp==='∞'||disp==='-∞'){
+    html+=card('∞ Division by Zero — Why Infinity?','#ffcc44',`
+      <b>Why does ÷ 0 give ∞ and not an error?</b><br><br>
+      In mathematics, as you divide by smaller and smaller numbers, the result grows without bound:<br>
+      <span class="highlight">10 ÷ 1 = 10<br>10 ÷ 0.1 = 100<br>10 ÷ 0.001 = 10,000<br>10 ÷ 0.0001 = 100,000<br>10 ÷ 0 → ∞ (grows forever)</span>
+      <b>Mathematical Law:</b> lim(x→0) of a/x = ∞<br><br>
+      <b>5 ÷ 0 = +∞</b> (Positive Infinity)<br>
+      <b>-5 ÷ 0 = -∞</b> (Negative Infinity)<br>
+      <b>0 ÷ 0 = Undefined</b> (Indeterminate — no single answer exists)<br>
+      <b>0 ÷ 5 = 0</b> (Zero divided by any non-zero = 0)<br><br>
+      Infinity is not a real number — it is a concept describing something that grows without limit.
+    `);
+  }
+
+  // ── Result properties ──
+  if(n!==null&&isFinite(n)){
+    const ni=Number.isInteger(n);
+    const a=Math.abs(n);
+    let facts=
+      row('Value',fmt(n))+
+      row('Type',ni?'Integer':'Decimal (Float)')+
+      row('Sign',n>0?'Positive ➕':n<0?'Negative ➖':'Zero');
+    if(ni){
+      facts+=row('Even / Odd',n%2===0?'✅ Even':'✅ Odd');
+      facts+=row('Prime Number',isPrime(a)?'✅ Yes — only divisible by 1 and itself':'❌ No');
+      facts+=row('Perfect Square',isPerfSq(a)?'✅ Yes (√ = '+Math.sqrt(a)+')':'❌ No');
+      if(a<500000){const fs=getFactors(a);facts+=row('All Factors',fs.join(', '));}
+    }
+    facts+=row('Square (x²)',fmt(roundR(n*n)));
+    facts+=row('Cube (x³)',fmt(roundR(n*n*n)));
+    facts+=row('√ (Square Root)',n>=0?fmt(roundR(Math.sqrt(n))):'Not real');
+    facts+=row('log₁₀',n>0?fmt(roundR(Math.log10(n))):'—');
+    facts+=row('ln (log e)',n>0?fmt(roundR(Math.log(n))):'—');
+    html+=card('📊 Number Properties','#4a9eff',facts);
+
+    // ── Why Prime? ──
+    if(ni&&isPrime(a)){
+      html+=card('🔮 Why is this a Prime Number?','#c8aaff',`
+        <b>${a}</b> is prime because it has <b>exactly 2 factors: 1 and ${a}</b>.<br><br>
+        It cannot be divided evenly by any number except 1 and itself.
+        <span class="highlight">Factors of ${a}: [ 1, ${a} ]</span>
+        Primes are the building blocks of all integers — every number can be broken into prime factors.<br><br>
+        <b>Used in:</b> cryptography, RSA encryption, computer security, number theory.
+      `);
+    }
+
+    // ── Even / Odd explanation ──
+    if(ni&&n!==0){
+      const isEven=n%2===0;
+      html+=card(isEven?'2️⃣ Why Even?':'1️⃣ Why Odd?',isEven?'#4a9eff':'#ff6b35',isEven
+        ?`<b>${n}</b> is <b>Even</b> because it divides exactly by 2 with remainder 0.
+          <span class="highlight">${n} ÷ 2 = ${n/2} (remainder: 0)</span>
+          Even numbers always end in: 0, 2, 4, 6, or 8.`
+        :`<b>${n}</b> is <b>Odd</b> because dividing by 2 leaves remainder 1.
+          <span class="highlight">${n} ÷ 2 = ${Math.floor(n/2)} remainder 1</span>
+          Odd numbers always end in: 1, 3, 5, 7, or 9.`
+      );
+    }
+  }
+
+  // ── Math Constants ──
+  html+=card('📐 Mathematical Constants','#3ddc84',
+    row('π (Pi)',           '3.14159265358979...')+
+    row('e (Euler)',        '2.71828182845904...')+
+    row('φ (Golden Ratio)', '1.61803398874989...')+
+    row('√2',              '1.41421356237309...')+
+    row('√3',              '1.73205080756887...')+
+    row('√5',              '2.23606797749978...')+
+    row('ln 2',            '0.69314718055994...')+
+    row('log₁₀ e',         '0.43429448190325...')
+  );
+
+  // ── Physics Constants ──
+  html+=card('⚡ Physics Constants','#ffcc44',
+    row('Speed of Light (c)',      '299,792,458 m/s')+
+    row('Gravity (g)',             '9.80665 m/s²')+
+    row("Planck's (h)",           '6.626×10⁻³⁴ J·s')+
+    row("Avogadro's (Nₐ)",       '6.022×10²³ /mol')+
+    row("Boltzmann's (k)",        '1.380×10⁻²³ J/K')+
+    row('Electron charge (e)',     '1.602×10⁻¹⁹ C')+
+    row('Electron mass',           '9.109×10⁻³¹ kg')+
+    row('Fine structure (α)',      '7.297×10⁻³ (≈1/137)')
+  );
+
+  // ── Formulas ──
+  html+=card('📏 Key Formulas','#ff6b35',
+    row('Circle Area',     'π × r²')+
+    row('Circumference',   '2 × π × r')+
+    row('Sphere Volume',   '(4/3) × π × r³')+
+    row('Pythagorean',     'a² + b² = c²')+
+    row('Quadratic',       '(-b ± √(b²-4ac)) / 2a')+
+    row('Compound Interest','A = P(1+r/n)^(nt)')+
+    row("Euler's Identity",'eⁱπ + 1 = 0')+
+    row('Binomial',        '(a+b)² = a²+2ab+b²')
+  );
+
+  // ── Number Types ──
+  html+=card('🔢 Number Types Guide','#c8aaff',`
+    <b>Natural:</b> 1, 2, 3, 4, 5... (counting numbers)<br>
+    <b>Integer:</b> ...-2, -1, 0, 1, 2... (whole, positive or negative)<br>
+    <b>Rational:</b> can be written as fraction (1/2, 3/4)<br>
+    <b>Irrational:</b> cannot be fraction (π, √2, e)<br>
+    <b>Prime:</b> divisible only by 1 and itself<br>
+    <b>Composite:</b> has more than 2 factors<br>
+    <b>Perfect Square:</b> result of an integer × itself<br>
+    <b>Fibonacci:</b> 1,1,2,3,5,8,13,21,34,55,89...
+  `);
+
+  el.innerHTML=html;
+}
+</script>
+</body>
+</html>
